@@ -1,31 +1,33 @@
-/*Nodemcu ESP8266 WIFI control car.
- * This code was created by sritu hobby team.
- * https://srituhobby.com
+/* Nodemcu ESP8266 WiFi Control Car
+ * Optimized version with stability fixes
  */
+
+#define BLYNK_TEMPLATE_ID "TEMPLATE_ID"
+#define BLYNK_TEMPLATE_NAME "TEMPLATE_NAME"
 
 #define BLYNK_PRINT Serial
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 
+BlynkTimer timer;  // ✅ Replace SimpleTimer with BlynkTimer
+
 // Motor PINs
-#define IN1 D1
-#define IN2 D2
-#define IN3 D3
-#define IN4 D4
-#define ENA D8  // PWM-supported pin
-#define ENB D7  // PWM-supported pin
+#define ENA D1
+#define IN1 D3  
+#define IN2 D4  
+#define IN3 D5  
+#define IN4 D6  
+#define ENB D2  
 
 // LED Pin
-#define LED D5  // LED connected to D6
+#define LED D7  
 
-bool forward = 0;
-bool backward = 0;
-bool left = 0;
-bool right = 0;
-int Speed;
-char auth[] = "AUTH_KEY"; // Enter your Blynk application auth token
-char ssid[] = "Rkvj"; // Enter your WiFi name
-char pass[] = "Speaker1"; // Enter your WiFi password
+bool forward = 0, backward = 0, left = 0, right = 0;
+int Speed = 500;  
+
+char auth[] = "AUTH_KEY";  
+char ssid[] = "DominiDaughter";  
+char pass[] = "HPOMENLAPTOP";  
 
 void setup() {
   Serial.begin(9600);
@@ -36,50 +38,35 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-  pinMode(LED, OUTPUT); // Set LED pin as output
+  pinMode(LED, OUTPUT);
   
   Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+  
+  // ✅ Use BlynkTimer instead of SimpleTimer
+  timer.setInterval(100L, smartcar);
 }
 
-// Blynk controls
 BLYNK_WRITE(V0) { forward = param.asInt(); }
 BLYNK_WRITE(V1) { backward = param.asInt(); }
 BLYNK_WRITE(V2) { left = param.asInt(); }
 BLYNK_WRITE(V3) { right = param.asInt(); }
 BLYNK_WRITE(V4) { Speed = param.asInt(); }
-
-// LED control from Blynk
-BLYNK_WRITE(V5) {  
-  int ledState = param.asInt();  // Read button value (0 or 1)
-  digitalWrite(LED, ledState);   // Turn LED on/off
-}
+BLYNK_WRITE(V5) { digitalWrite(LED, param.asInt()); }  
 
 void smartcar() {
-  if (forward) {
-    carforward();
-    Serial.println("carforward");
-  } else if (backward) {
-    carbackward();
-    Serial.println("carbackward");
-  } else if (left) {
-    carturnleft();
-    Serial.println("carleft");
-  } else if (right) {
-    carturnright();
-    Serial.println("carright");
-  } else {
-    carStop();
-    Serial.println("carstop");
-  }
+  if (forward && !backward && !left && !right) carForward();
+  else if (backward && !forward && !left && !right) carBackward();
+  else if (left && !right && !forward && !backward) carTurnLeft();
+  else if (right && !left && !forward && !backward) carTurnRight();
+  else carStop();
 }
 
 void loop() {
   Blynk.run();
-  smartcar();
+  timer.run();  // ✅ Use BlynkTimer
 }
 
-// Car movement functions
-void carforward() {
+void carForward() {
   analogWrite(ENA, Speed);
   analogWrite(ENB, Speed);
   digitalWrite(IN1, LOW);
@@ -87,7 +74,8 @@ void carforward() {
   digitalWrite(IN3, HIGH);
   digitalWrite(IN4, LOW);
 }
-void carbackward() {
+
+void carBackward() {
   analogWrite(ENA, Speed);
   analogWrite(ENB, Speed);
   digitalWrite(IN1, HIGH);
@@ -95,22 +83,25 @@ void carbackward() {
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
 }
-void carturnleft() {
-  analogWrite(ENA, Speed);
+
+void carTurnLeft() {
+  analogWrite(ENA, Speed / 2);
   analogWrite(ENB, Speed);
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH);
   digitalWrite(IN4, LOW);
 }
-void carturnright() {
+
+void carTurnRight() {
   analogWrite(ENA, Speed);
-  analogWrite(ENB, Speed);
+  analogWrite(ENB, Speed / 2);
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
 }
+
 void carStop() {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
