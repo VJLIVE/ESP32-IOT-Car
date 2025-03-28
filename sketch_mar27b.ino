@@ -26,8 +26,8 @@ bool forward = 0, backward = 0, left = 0, right = 0;
 int Speed = 500;  
 
 char auth[] = "AUTH_KEY";  
-char ssid[] = "DominiDaughter";  
-char pass[] = "HPOMENLAPTOP";  
+char ssid[] = "WIFI_SSID";  
+char pass[] = "WIFI_PASSWORD";  
 
 void setup() {
   Serial.begin(9600);
