@@ -1,6 +1,4 @@
-/* Nodemcu ESP8266 WiFi Control Car
- * Optimized version with stability fixes
- */
+/* Nodemcu ESP8266 WiFi Control Car - Optimized & Fast Response */
 
 #define BLYNK_TEMPLATE_ID "TEMPLATE_ID"
 #define BLYNK_TEMPLATE_NAME "TEMPLATE_NAME"
@@ -9,7 +7,7 @@
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 
-BlynkTimer timer;  // ✅ Replace SimpleTimer with BlynkTimer
+BlynkTimer timer;  // Use BlynkTimer for stability
 
 // Motor PINs
 #define ENA D1
@@ -19,15 +17,12 @@ BlynkTimer timer;  // ✅ Replace SimpleTimer with BlynkTimer
 #define IN4 D6  
 #define ENB D2  
 
-// LED Pin
-#define LED D7  
-
 bool forward = 0, backward = 0, left = 0, right = 0;
 int Speed = 500;  
 
 char auth[] = "AUTH_KEY";  
-char ssid[] = "WIFI_SSID";  
-char pass[] = "WIFI_PASSWORD";  
+char ssid[] = "SSID";  
+char pass[] = "PASS";  
 
 void setup() {
   Serial.begin(9600);
@@ -38,7 +33,6 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-  pinMode(LED, OUTPUT);
   
   Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
   
@@ -51,7 +45,6 @@ BLYNK_WRITE(V1) { backward = param.asInt(); }
 BLYNK_WRITE(V2) { left = param.asInt(); }
 BLYNK_WRITE(V3) { right = param.asInt(); }
 BLYNK_WRITE(V4) { Speed = param.asInt(); }
-BLYNK_WRITE(V5) { digitalWrite(LED, param.asInt()); }  
 
 void smartcar() {
   if (forward && !backward && !left && !right) carForward();
