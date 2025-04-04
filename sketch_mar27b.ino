@@ -17,6 +17,9 @@ BlynkTimer timer;  // Use BlynkTimer for stability
 #define IN4 D6  
 #define ENB D2  
 
+// LED Pin
+#define LED D7
+
 bool forward = 0, backward = 0, left = 0, right = 0;
 int Speed = 500;  
 
@@ -33,6 +36,8 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
+
+  pinMode(LED, OUTPUT);  // ✅ Set LED pin as output
   
   Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
   
@@ -40,11 +45,18 @@ void setup() {
   timer.setInterval(100L, smartcar);
 }
 
+// Motor Controls via Blynk Virtual Pins
 BLYNK_WRITE(V0) { forward = param.asInt(); }
 BLYNK_WRITE(V1) { backward = param.asInt(); }
 BLYNK_WRITE(V2) { left = param.asInt(); }
 BLYNK_WRITE(V3) { right = param.asInt(); }
 BLYNK_WRITE(V4) { Speed = param.asInt(); }
+
+// ✅ LED Control on V5
+BLYNK_WRITE(V5) {
+  int ledState = param.asInt();
+  digitalWrite(LED, ledState);
+}
 
 void smartcar() {
   if (forward && !backward && !left && !right) carForward();
