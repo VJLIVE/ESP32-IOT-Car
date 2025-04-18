@@ -1,4 +1,4 @@
-/* Nodemcu ESP8266 WiFi Control Car - Optimized & Fast Response */
+/* Nodemcu ESP8266 WiFi Control Car - Optimized & Safe */
 
 #define BLYNK_TEMPLATE_ID "TEMPLATE_ID"
 #define BLYNK_TEMPLATE_NAME "TEMPLATE_NAME"
@@ -7,7 +7,7 @@
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 
-BlynkTimer timer;  // Use BlynkTimer for stability
+BlynkTimer timer;
 
 // Motor PINs
 #define ENA D1
@@ -20,8 +20,13 @@ BlynkTimer timer;  // Use BlynkTimer for stability
 // LED Pin
 #define LED D7
 
+// Ultrasonic Sensor
+#define TRIG_PIN D8
+#define ECHO_PIN D0
+
 bool forward = 0, backward = 0, left = 0, right = 0;
-int Speed = 500;  
+int Speed = 500;
+bool obstacleDetected = false;
 
 char auth[] = "AUTH_KEY";  
 char ssid[] = "SSID";  
@@ -36,39 +41,60 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
+  pinMode(LED, OUTPUT);
+  
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
 
-  pinMode(LED, OUTPUT);  // ✅ Set LED pin as output
-  
   Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
-  
-  // ✅ Use BlynkTimer instead of SimpleTimer
-  timer.setInterval(100L, smartcar);
+  timer.setInterval(100L, smartcar);  // Repeatedly check and act
 }
 
-// Motor Controls via Blynk Virtual Pins
+// Virtual Pin Inputs
 BLYNK_WRITE(V0) { forward = param.asInt(); }
 BLYNK_WRITE(V1) { backward = param.asInt(); }
 BLYNK_WRITE(V2) { left = param.asInt(); }
 BLYNK_WRITE(V3) { right = param.asInt(); }
 BLYNK_WRITE(V4) { Speed = param.asInt(); }
-
-// ✅ LED Control on V5
 BLYNK_WRITE(V5) {
   int ledState = param.asInt();
   digitalWrite(LED, ledState);
 }
 
+void loop() {
+  Blynk.run();
+  timer.run();
+}
+
+void checkObstacle() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH, 20000); // timeout 20ms
+  int distance = duration * 0.034 / 2;
+   Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+  obstacleDetected = (distance > 0 && distance < 50);  // < 50 cm = obstacle
+}
+
 void smartcar() {
-  if (forward && !backward && !left && !right) carForward();
+  checkObstacle();
+
+  if (forward && !backward && !left && !right) {
+    if (!obstacleDetected) {
+      carForward();
+    } else {
+      carStop();  // Block forward due to obstacle
+    }
+  }
   else if (backward && !forward && !left && !right) carBackward();
   else if (left && !right && !forward && !backward) carTurnLeft();
   else if (right && !left && !forward && !backward) carTurnRight();
   else carStop();
-}
-
-void loop() {
-  Blynk.run();
-  timer.run();  // ✅ Use BlynkTimer
 }
 
 void carForward() {
